@@ -1,9 +1,8 @@
 import com.github.kittinunf.fuel.Fuel
 import dbmodels.FavoriteSongs
+import models.SimpleSong
 import models.Song
-import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.SchemaUtils
-import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 
 fun initializeDatabase() {
@@ -14,13 +13,15 @@ fun initializeDatabase() {
 
 
     Database.connect(
-            "jdbc:postgresql:songs",
+            "jdbc:postgresql:songs?createDatabaseIfNotExist=true",
             "org.postgresql.Driver",
             "postgres",
-            "Admin"
+            "root"
     )
     transaction {
+        SchemaUtils.drop(FavoriteSongs)
         SchemaUtils.create(FavoriteSongs)
+
         songs?.forEach { currentSong -> FavoriteSongs.insert {
             it[year] = currentSong.year
             it[country]=currentSong.country
@@ -102,19 +103,25 @@ fun main (args: Array<String>) {
                 val songName = readLine()!!
 
                 println("CANCIONES QUE CONTENGAN: $songName")
-                val songs:ArrayList<Song> = getSongsByName(songName)
-                songs.forEachIndexed { index, song -> println("$index. ${song.song}") }
+                val songs = getSongsByName(songName)
 
-                print("Desea guardar alguna cancion como favorita? (si/no)")  //Escribir 'si'
-                val answer = readLine()!!
-                if(answer.toLowerCase() == "si") {
-                    print("Cual?: ")
-                    val strIndexSong = readLine()!!
-                    val indexSong = strIndexSong.toInt()
+                if(songs.isNotEmpty()){
+                    songs.forEachIndexed { index, song -> println("${index + 1}. ${song.name}") }
 
-                    setFavoriteSong(songs[indexSong])
-                    println("OK, Listo!")
+                    print("Desea guardar alguna cancion como favorita? (si/no)")  //Escribir 'si'
+                    val answer = readLine()!!
+                    if(answer.toLowerCase() == "si") {
+                        print("Cual?: ")
+                        val strIndexSong = readLine()!!
+                        val indexSong = strIndexSong.toInt()
+
+                        setFavoriteSong(songs[indexSong - 1].id )
+                        println("OK, Listo!")
+                    }
+                } else {
+                    println("Lista vacia :( intente de nuevo...")
                 }
+
             }
             2 -> {
                 //Filtro por nombre de artista
@@ -127,24 +134,30 @@ fun main (args: Array<String>) {
                 val artistName = readLine()!!
 
                 println("CANCIONES DE: $artistName")
-                val songs:ArrayList<Song> = getSongsByArtist(artistName)
-                songs.forEachIndexed { index, song -> println("$index. ${song.song}") }
+                val songs = getSongsByArtist(artistName)
 
-                print("Desea guardar alguna cancion como favorita? (si/no)")  //Escribir 'si'
-                val answer = readLine()!!
-                if(answer.toLowerCase() == "si") {
-                    print("Cual?: ")
-                    val strIndexSong = readLine()!!
-                    val indexSong = strIndexSong.toInt()
+                if(songs.isNotEmpty()){
+                    songs.forEachIndexed { index, song -> println("${index + 1}. ${song.name}") }
 
-                    setFavoriteSong(songs[indexSong])
-                    println("OK, Listo!")
+                    print("Desea guardar alguna cancion como favorita? (si/no)")  //Escribir 'si'
+                    val answer = readLine()!!
+                    if(answer.toLowerCase() == "si") {
+                        print("Cual?: ")
+                        val strIndexSong = readLine()!!
+                        val indexSong = strIndexSong.toInt()
+
+                        setFavoriteSong(songs[indexSong - 1].id )
+                        println("OK, Listo!")
+                    }
+                } else {
+                    println("Lista vacia :( intente de nuevo...")
                 }
+
             }
             3 -> {
                 //Filtro donde isFavorite sea True
-                val favoriteSongs:ArrayList<Song> = getFavoriteSongs()
-                favoriteSongs.forEachIndexed { index, song -> println("$index. ${song.song}") }
+                val favoriteSongs = getFavoriteSongs()
+                favoriteSongs.forEachIndexed { index, song -> println("${index + 1}. ${song.name}") }
             }
             4 -> {
                 //Salir
@@ -155,20 +168,40 @@ fun main (args: Array<String>) {
     } while (wantsToContinue)
 }
 
-fun setFavoriteSong(song: Song) {
-    //TODO: hacer una busqueda por id, comparar y cambiar isFavorite a True
+fun setFavoriteSong(songId: Int) {
+    FavoriteSongs.update({ FavoriteSongs.id.eq(songId)}) {
+        it[FavoriteSongs.isFavorite] = "true"
+    }
 }
 
-fun getSongsByArtist(artist: String): ArrayList<Song> {
-    return ArrayList()
+fun getSongsByArtist(artist: String): List<SimpleSong> {
+    var simpleSongList:List<SimpleSong> = ArrayList()
+    transaction {
+        simpleSongList = FavoriteSongs.select{ FavoriteSongs.artistName.like("%${artist}%") }.map{
+            SimpleSong(it[FavoriteSongs.id], it[FavoriteSongs.song], it[FavoriteSongs.artistName])
+        }
+    }
+    return simpleSongList
 }
 
-fun getSongsByName(name:String): ArrayList<Song> {
-    return ArrayList()
+fun getSongsByName(name:String): List<SimpleSong> {
+    var simpleSongList:List<SimpleSong> = ArrayList()
+    transaction {
+        simpleSongList = FavoriteSongs.select{ FavoriteSongs.song.like("%${name}%") }.map{
+            SimpleSong(it[FavoriteSongs.id], it[FavoriteSongs.song], it[FavoriteSongs.artistName])
+        }
+    }
+    return simpleSongList
 }
 
-fun getFavoriteSongs(): ArrayList<Song> {
-    return ArrayList()
+fun getFavoriteSongs(): List<SimpleSong> {
+    var simpleSongList:List<SimpleSong> = ArrayList()
+    transaction {
+        simpleSongList = FavoriteSongs.select{ FavoriteSongs.isFavorite.eq("true") }.map{
+            SimpleSong(it[FavoriteSongs.id], it[FavoriteSongs.song], it[FavoriteSongs.artistName])
+        }
+    }
+    return simpleSongList
 }
 
 

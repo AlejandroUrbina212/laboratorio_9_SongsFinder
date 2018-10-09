@@ -14,3 +14,5 @@ data class Song (val year:String, val country: String, val region: String, val a
         }
     }
 }
+
+class SimpleSong(val id:Int, val name:String, val artistName:String) {}
