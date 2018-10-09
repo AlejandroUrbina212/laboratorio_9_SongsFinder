@@ -108,7 +108,7 @@ fun main (args: Array<String>) {
                 if(songs.isNotEmpty()){
                     songs.forEachIndexed { index, song -> println("${index + 1}. ${song.name}") }
 
-                    print("Desea guardar alguna cancion como favorita? (si/no)")  //Escribir 'si'
+                    print("Desea guardar alguna cancion como favorita? (si/no): ")  //Escribir 'si'
                     val answer = readLine()!!
                     if(answer.toLowerCase() == "si") {
                         print("Cual?: ")
@@ -139,7 +139,7 @@ fun main (args: Array<String>) {
                 if(songs.isNotEmpty()){
                     songs.forEachIndexed { index, song -> println("${index + 1}. ${song.name}") }
 
-                    print("Desea guardar alguna cancion como favorita? (si/no)")  //Escribir 'si'
+                    print("Desea guardar alguna cancion como favorita? (si/no): ")  //Escribir 'si'
                     val answer = readLine()!!
                     if(answer.toLowerCase() == "si") {
                         print("Cual?: ")
@@ -169,8 +169,10 @@ fun main (args: Array<String>) {
 }
 
 fun setFavoriteSong(songId: Int) {
-    FavoriteSongs.update({ FavoriteSongs.id.eq(songId)}) {
-        it[FavoriteSongs.isFavorite] = "true"
+    transaction {
+        FavoriteSongs.update({ FavoriteSongs.id.eq(songId)}) {
+            it[FavoriteSongs.isFavorite] = "true"
+        }
     }
 }
 
