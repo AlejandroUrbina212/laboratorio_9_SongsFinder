@@ -16,7 +16,7 @@ fun initializeDatabase() {
             "jdbc:postgresql:songs?createDatabaseIfNotExist=true",
             "org.postgresql.Driver",
             "postgres",
-            "root"
+            "Admin"
     )
     transaction {
         SchemaUtils.drop(FavoriteSongs)
@@ -106,7 +106,7 @@ fun main (args: Array<String>) {
                 val songs = getSongsByName(songName)
 
                 if(songs.isNotEmpty()){
-                    songs.forEachIndexed { index, song -> println("${index + 1}. ${song.name}") }
+                    songs.forEachIndexed { index, song -> println("${index + 1}. ${song.name} Artista: ${song.artistName}") }
 
                     print("Desea guardar alguna cancion como favorita? (si/no): ")  //Escribir 'si'
                     val answer = readLine()!!
@@ -137,7 +137,8 @@ fun main (args: Array<String>) {
                 val songs = getSongsByArtist(artistName)
 
                 if(songs.isNotEmpty()){
-                    songs.forEachIndexed { index, song -> println("${index + 1}. ${song.name}") }
+                    songs.forEachIndexed { index, song ->
+                        println("${index + 1}. ${song.name} Artista: ${song.artistName}") }
 
                     print("Desea guardar alguna cancion como favorita? (si/no): ")  //Escribir 'si'
                     val answer = readLine()!!
@@ -169,6 +170,8 @@ fun main (args: Array<String>) {
 }
 
 fun setFavoriteSong(songId: Int) {
+    //transacción que hace update en la colección FavoriteSongs donde el ID de la canción sea igual al solicitado en
+    //los parámetros. Cambiándolo a true
     transaction {
         FavoriteSongs.update({ FavoriteSongs.id.eq(songId)}) {
             it[FavoriteSongs.isFavorite] = "true"
@@ -177,8 +180,10 @@ fun setFavoriteSong(songId: Int) {
 }
 
 fun getSongsByArtist(artist: String): List<SimpleSong> {
+    //inicialización del array de canciones que solo contienen tres atributos.
     var simpleSongList:List<SimpleSong> = ArrayList()
     transaction {
+        //mapeo a una lista de SimpleSongs de  todos los resultados devueltos por select, buscando por artista.
         simpleSongList = FavoriteSongs.select{ FavoriteSongs.artistName.like("%${artist}%") }.map{
             SimpleSong(it[FavoriteSongs.id], it[FavoriteSongs.song], it[FavoriteSongs.artistName])
         }
@@ -189,6 +194,8 @@ fun getSongsByArtist(artist: String): List<SimpleSong> {
 fun getSongsByName(name:String): List<SimpleSong> {
     var simpleSongList:List<SimpleSong> = ArrayList()
     transaction {
+        //mapeo a una lista de SimpleSongs de  todos los resultados devueltos por select, buscando por nombre o que contenga
+        // el string name provisto en los atributos de la firma de esa función
         simpleSongList = FavoriteSongs.select{ FavoriteSongs.song.like("%${name}%") }.map{
             SimpleSong(it[FavoriteSongs.id], it[FavoriteSongs.song], it[FavoriteSongs.artistName])
         }
